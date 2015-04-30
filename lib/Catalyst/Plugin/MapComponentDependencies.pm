@@ -57,7 +57,10 @@ Catalyst::Plugin::MapComponentDependencies - Allow components to depend on other
 
     package MyApp;
     
-    use Catalyst qw/MapComponentDependencies/;
+    use Moose;
+    use Catalyst;
+  
+    with 'Catalyst::Plugin::MapComponentDependencies';
 
     MyApp->map_dependencies(
       'Model::Foo' => {
@@ -77,6 +80,34 @@ Catalyst::Plugin::MapComponentDependencies - Allow components to depend on other
 
 During setup when 'Model::Foo' is created it will get all three key / value pairs
 send to ->new.
+
+B<NOTE:> You need to compose this plugin via the L<Moose> 'with' subroutine if you
+want to get the handy class methods 'map_dependencies' and 'map_dependency'.  If you
+prefer you may setup you dependencies via configuration:
+
+    package MyApp;
+    
+    use Catalyst 'MapComponentDependencies';
+  
+    MyApp->config(
+      'Model::Foo' => { another_param => 'value' },
+      'Plugin::MapComponentDependencies' => {
+        map_dependencies => {
+          'Model::Foo' => {
+            bar => 'Model::Bar',
+            baz => sub {
+              my ($app_or_ctx, $component_name) = @_;
+              return ...;
+            },
+          },
+        },
+      },
+    )
+
+    MyApp->setup;
+
+You may prefer this if your dependencies will map differently based on environment
+and configuration settings.
 
 =head1 DESCRIPTION
 

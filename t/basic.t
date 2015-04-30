@@ -36,10 +36,9 @@ BEGIN {
   package MyApp;
 
   use Moose;
-  use Catalyst;
+  use Catalyst 'MapComponentDependencies';
   
   with 'Catalyst::Plugin::MapComponentDependencies';
-
 
   __PACKAGE__->map_dependencies(
     'Model::Depending' => { aaa => 'Model::Normal' }
@@ -48,7 +47,6 @@ BEGIN {
   MyApp->config(
     'Model::Normal' => { ccc => 300 },
     'Model::Depending' => { bbb => 200 },
-
   );
 
   MyApp->setup;
