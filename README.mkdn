@@ -1,0 +1,54 @@
+# NAME
+
+Catalyst::Plugin::MapComponentDependencies - Allow components to depend on other components
+
+# SYNOPSIS
+
+    package MyApp;
+    
+    use Catalyst qw/MapComponentDependencies/;
+
+    MyApp->map_dependencies(
+      'Model::Foo' => {
+        bar => 'Model::Bar',
+        baz => sub {
+          my ($app_or_ctx, $component_name) = @_;
+          return ...;
+        },
+      },
+    );
+
+    MyApp->config(
+      'Model::Foo' => { another_param => 'value' }
+    )
+
+    MyApp->setup;
+
+During setup when 'Model::Foo' is created it will get all three key / value pairs
+send to ->new.
+
+# DESCRIPTION
+
+Sometimes you would like a [Catalyst](https://metacpan.org/pod/Catalyst) component to depend on the value of an
+existing component.  Since components are resolved during application setup (or
+at request time, in the cause of a component that does ACCEPT\_CONTEXT) you cannot
+specify this dependency mapping in the 'normal' [Catalyst](https://metacpan.org/pod/Catalyst) configuration hash.
+
+This plugin, which requires a recent [Catalyst](https://metacpan.org/pod/Catalyst) of version 5.90090+, allows you to
+define components which depend on each other.  You can also set the value of an
+initial argument to the value of a coderef, for added dynamic flexibility.
+
+# SEE ALSO
+
+[Catalyst](https://metacpan.org/pod/Catalyst), [Catalyst::Plugin::InjectionHelpers](https://metacpan.org/pod/Catalyst::Plugin::InjectionHelpers).
+
+# AUTHOR
+
+John Napiorkowski [email:jjnapiork@cpan.org](email:jjnapiork@cpan.org)
+
+# COPYRIGHT & LICENSE
+
+Copyright 2015, John Napiorkowski [email:jjnapiork@cpan.org](email:jjnapiork@cpan.org)
+
+This library is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
