@@ -1,24 +1,20 @@
-use Test::Most;
-use Scalar::Util qw/refaddr/;
-
 BEGIN {
-  package MyApp::Role::Foo;
-  $INC{'MyApp/Role/Foo.pm'} = __FILE__;
-
-  use Moose::Role;
-
-  sub foo { 'foo' }
-
-  package MyApp::Singleton;
-  $INC{'MyApp/Singleton.pm'} = __FILE__;
-
-  use Moose;
-
-  has aaa => (is=>'ro', required=>1);
-  has bbb => (is=>'ro');
+  use Test::Most;
+  eval "use Catalyst 5.90090; 1" || do {
+    plan skip_all => "Need a newer version of Catalyst => $@";
+  };
 }
 
 {
+  package MyApp::Model::Depending;
+  $INC{'MyApp/Model/Depending.pm'} = __FILE__;
+
+  use Moose;
+  extends 'Catalyst::Model';
+
+  has aaa => (is=>'ro', required=>1);
+  has bbb => (is=>'ro', required=>1);
+
   package MyApp::Model::Normal;
   $INC{'MyApp/Model/Normal.pm'} = __FILE__;
 
@@ -38,69 +34,35 @@ BEGIN {
   }
 
   package MyApp;
-  use Catalyst 'InjectionHelpers';
 
-  MyApp->inject_components(
-    'Model::SingletonA' => { from_class=>'MyApp::Singleton', adaptor=>'Application', roles=>['MyApp::Role::Foo'], method=>'new' },
-    'Model::SingletonB' => {
-      from_class=>'MyApp::Singleton', 
-      adaptor=>'Application', 
-      roles=>['MyApp::Role::Foo'], 
-      method=>sub {
-        my ($adaptor, $class, $app, %args) = @_;
-        return $class->new(aaa=>$args{arg});
-      },
-    },
-    'Model::Factory' => { from_class=>'MyApp::Singleton', adaptor=>'Factory' },
-    'Model::PerRequest' => { from_class=>'MyApp::Singleton', adaptor=>'PerRequest' },
+  use Moose;
+  use Catalyst;
+  
+  with 'Catalyst::Plugin::MapComponentDependencies';
 
+
+  __PACKAGE__->map_dependencies(
+    'Model::Depending' => { aaa => 'Model::Normal' }
   );
 
   MyApp->config(
-    'Model::SingletonA' => { aaa=>100 },
-    'Model::SingletonB' => { arg=>300 },
-    'Model::Factory' => {aaa=>444},
-    'Model::Normal' => { ccc=>200 },
+    'Model::Normal' => { ccc => 300 },
+    'Model::Depending' => { bbb => 200 },
+
   );
 
   MyApp->setup;
+  MyApp->meta->make_immutable;
 }
 
 use Catalyst::Test 'MyApp';
 
 {
   my ($res, $c) = ctx_request( '/example/test' );
-  is $c->model('Normal')->ccc, 200;
-  is $c->model('SingletonA')->aaa, 100;
-  is $c->model('SingletonA')->foo, 'foo';
-  is $c->model('SingletonB')->aaa, 300;
-  is $c->model('SingletonB')->foo, 'foo';
-  is refaddr($c->model('SingletonB')), refaddr($c->model('SingletonB'));
 
-  {
-    ok my $f = $c->model('Factory', bbb=>'bbb');
-    is $f->aaa, 444;
-    is $f->bbb, 'bbb';
-    isnt refaddr($f), refaddr($c->model('Factory'));
-    isnt refaddr($c->model('Factory')), refaddr($c->model('Factory'));
-  }
-
-  {
-    ok my $p = $c->model('PerRequest', aaa=>1, bbb=>2);
-    is $p->aaa, 1;
-    is $p->bbb, 2;
-    is refaddr($p), refaddr($c->model('PerRequest'));
-
-    {
-      my ($res, $c) = ctx_request( '/example/test' );
-      ok my $p2 = $c->model('PerRequest', aaa=>3, bbb=>4);
-      is $p2->aaa, 3;
-      is $p2->bbb, 4;
-      is refaddr($p2), refaddr($c->model('PerRequest'));
-      isnt refaddr($p), refaddr($c->model('PerRequest'));
-      isnt refaddr($p), refaddr($p2);
-    }
-  }
+  is $c->model('Normal')->ccc, 300;
+  is $c->model('Depending')->bbb, 200;
+  is $c->model('Depending')->aaa->ccc, 300;
 }
 
 done_testing;

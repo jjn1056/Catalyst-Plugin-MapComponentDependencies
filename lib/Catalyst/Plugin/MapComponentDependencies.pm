@@ -1,27 +1,50 @@
 package Catalyst::Plugin::MapComponentDependencies;
 
 use Moose::Role;
+use Catalyst::Utils;
 
 requires 'config_for';
 
+my $plugin_config = sub {
+  my $self = shift;
+  return $self->config->{'Plugin::MapComponentDependencies'} ||= +{};
+};
+
 sub map_dependency {
-  my ($app, $name, $args) = @_;
+  my ($self, $name, $args) = @_;
   die "Component $name exists" if
-    $app->config->{'Plugin::MapComponentDependencies'}->{map_dependencies}->{$name};
-  $app->config->{'Plugin::MapComponentDependencies'}->{map_dependencies}->{$name} = $args;
+    $self->$plugin_config->{map_dependencies}->{$name};
+  $self->$plugin_config->{map_dependencies}->{$name} = $args;
 }
  
 sub map_dependencies {
-  my $app = shift;
+  my $self = shift;
   while(@_) {
-    $app->map_dependency(shift, shift);
+    $self->map_dependency(shift, shift);
   }
-}
-around 'config_for', sub {
-  my ($orig, $app_or_ctx, @args) = @_;
-  my $config = $app_or_ctx->$orig(@args);
 
-  return $config;
+  return $self->$plugin_config->{map_dependencies} ||= +{};
+}
+
+around 'config_for', sub {
+  my ($orig, $app_or_ctx, $component_name, @args) = @_;
+  my $config = $app_or_ctx->$orig($component_name, @args);
+  my $component_suffix = Catalyst::Utils::class2classsuffix($component_name);
+  
+  my $dependencies = $app_or_ctx->map_dependencies->{$component_suffix} ||
+    return $config;
+
+  # walk the value tree for $dependencies.
+  foreach my $key (keys %$dependencies) {
+    if((ref($dependencies->{key}) ||'') eq 'CODE') {
+      $dependencies->{$key} = $dependencies->{$key}->($app_or_ctx, $component_name);
+    } else {
+      $dependencies->{$key} = $app_or_ctx->component($dependencies->{$key}) ||
+        die "'$component_name' is not a component...";
+    }
+  }
+
+  return my $merged = Catalyst::Utils::merge_hashes($config, $dependencies);
 };
 
 1;
