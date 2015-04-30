@@ -38,6 +38,41 @@ This plugin, which requires a recent [Catalyst](https://metacpan.org/pod/Catalys
 define components which depend on each other.  You can also set the value of an
 initial argument to the value of a coderef, for added dynamic flexibility.
 
+# METHODS
+
+This plugin defines the following methods
+
+## map\_dependencies
+
+Example:
+
+    MyApp->map_dependencies(
+      'Model::AnotherModel' => { aaa => 'Model::Foo' },
+      'Model::Foo' => {
+        bar => 'Model::Bar',
+        baz => sub {
+          my ($app_or_ctx, $component_name) = @_;
+          return ...;
+        },
+      },
+    );
+
+Maps a list of components and dependencies
+
+# map\_dependency
+
+Maps a single component to a hashref of dependencies.
+
+# CONFIGURATION
+
+This plugin defines the configuration namespace 'Plugin::MapComponentDependencies'
+and defines the following keys:
+
+## map\_dependencies
+
+A Hashref where the key is a target component and the value is a hashref of arguments
+that will be sent to it during initializion.
+
 # SEE ALSO
 
 [Catalyst](https://metacpan.org/pod/Catalyst), [Catalyst::Plugin::InjectionHelpers](https://metacpan.org/pod/Catalyst::Plugin::InjectionHelpers).

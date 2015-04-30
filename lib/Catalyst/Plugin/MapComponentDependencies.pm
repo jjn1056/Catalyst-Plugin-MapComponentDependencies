@@ -4,17 +4,17 @@ use Moose::Role;
 
 requires 'config_for';
 
-sub inject_component {
+sub map_dependency {
   my ($app, $name, $args) = @_;
   die "Component $name exists" if
-    $app->config->{inject_components}->{$name};
-  $app->config->{inject_components}->{$name} = $args;
+    $app->config->{'Plugin::MapComponentDependencies'}->{map_dependencies}->{$name};
+  $app->config->{'Plugin::MapComponentDependencies'}->{map_dependencies}->{$name} = $args;
 }
  
-sub inject_components {
+sub map_dependencies {
   my $app = shift;
   while(@_) {
-    $app->inject_component(shift, shift);
+    $app->map_dependency(shift, shift);
   }
 }
 around 'config_for', sub {
@@ -65,6 +65,41 @@ specify this dependency mapping in the 'normal' L<Catalyst> configuration hash.
 This plugin, which requires a recent L<Catalyst> of version 5.90090+, allows you to
 define components which depend on each other.  You can also set the value of an
 initial argument to the value of a coderef, for added dynamic flexibility.
+
+=head1 METHODS
+
+This plugin defines the following methods
+
+=head2 map_dependencies
+
+Example:
+
+    MyApp->map_dependencies(
+      'Model::AnotherModel' => { aaa => 'Model::Foo' },
+      'Model::Foo' => {
+        bar => 'Model::Bar',
+        baz => sub {
+          my ($app_or_ctx, $component_name) = @_;
+          return ...;
+        },
+      },
+    );
+
+Maps a list of components and dependencies
+
+=head1 map_dependency
+
+Maps a single component to a hashref of dependencies.
+
+=head1 CONFIGURATION
+
+This plugin defines the configuration namespace 'Plugin::MapComponentDependencies'
+and defines the following keys:
+
+=head2 map_dependencies
+
+A Hashref where the key is a target component and the value is a hashref of arguments
+that will be sent to it during initializion.
 
 =head1 SEE ALSO
 
