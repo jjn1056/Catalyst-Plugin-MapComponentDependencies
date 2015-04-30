@@ -36,7 +36,7 @@ BEGIN {
   package MyApp;
 
   use Moose;
-  use Catalyst 'MapComponentDependencies';
+  use Catalyst;
   
   with 'Catalyst::Plugin::MapComponentDependencies';
 
