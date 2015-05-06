@@ -5,6 +5,8 @@ use Catalyst::Utils;
 
 requires 'config_for';
 
+our $VERSION = '0.002';
+
 my $plugin_config = sub {
   my $self = shift;
   return $self->config->{'Plugin::MapComponentDependencies'} ||= +{};

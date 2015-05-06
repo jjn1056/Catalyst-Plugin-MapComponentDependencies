@@ -1,4 +1,7 @@
 Revision history for Perl extension Catalyst::Plugin::MapComponentDependencies
 
+0.002   05 May 2015
+        - Fixed bad version information
+7
 0.001   30 April 2015
         - original version.
