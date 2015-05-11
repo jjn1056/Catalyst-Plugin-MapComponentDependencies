@@ -14,6 +14,7 @@ BEGIN {
 
   has aaa => (is=>'ro', required=>1);
   has bbb => (is=>'ro', required=>1);
+  has code => (is=>'ro', required=>1);
 
   package MyApp::Model::Normal;
   $INC{'MyApp/Model/Normal.pm'} = __FILE__;
@@ -41,7 +42,13 @@ BEGIN {
   with 'Catalyst::Plugin::MapComponentDependencies';
 
   __PACKAGE__->map_dependencies(
-    'Model::Depending' => { aaa => 'Model::Normal' }
+    'Model::Depending' => {
+      aaa => 'Model::Normal',
+      code => sub {
+        my ($app, $component_name) = @_;
+        return 1;
+      },
+    }
   );
 
   MyApp->config(
@@ -61,6 +68,7 @@ use Catalyst::Test 'MyApp';
   is $c->model('Normal')->ccc, 300;
   is $c->model('Depending')->bbb, 200;
   is $c->model('Depending')->aaa->ccc, 300;
+  is $c->model('Depending')->code, 1;
 }
 
 done_testing;

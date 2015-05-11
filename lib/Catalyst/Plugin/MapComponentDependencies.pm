@@ -5,7 +5,7 @@ use Catalyst::Utils;
 
 requires 'config_for';
 
-our $VERSION = '0.002';
+our $VERSION = '0.003';
 
 my $plugin_config = sub {
   my $self = shift;
@@ -38,11 +38,11 @@ around 'config_for', sub {
 
   # walk the value tree for $dependencies.
   foreach my $key (keys %$dependencies) {
-    if((ref($dependencies->{key}) ||'') eq 'CODE') {
-      $dependencies->{$key} = $dependencies->{$key}->($app_or_ctx, $component_name);
+    if((ref($dependencies->{$key}) ||'') eq 'CODE') {
+      $dependencies->{$key} = $dependencies->{$key}->($app_or_ctx, $component_name, $config);
     } else {
       $dependencies->{$key} = $app_or_ctx->component($dependencies->{$key}) ||
-        die "'$component_name' is not a component...";
+        die "'${\$dependencies->{$key}}' is not a component...";
     }
   }
 
@@ -98,7 +98,7 @@ prefer you may setup you dependencies via configuration:
           'Model::Foo' => {
             bar => 'Model::Bar',
             baz => sub {
-              my ($app_or_ctx, $component_name) = @_;
+              my ($app_or_ctx, $component_name, $from_config_args) = @_;
               return ...;
             },
           },
@@ -122,6 +122,19 @@ This plugin, which requires a recent L<Catalyst> of version 5.90090+, allows you
 define components which depend on each other.  You can also set the value of an
 initial argument to the value of a coderef, for added dynamic flexibility.
 
+You may define dependencies in one of two ways.  The first way is to use a key/value
+pair to map a configuation key attribute to the value of an existing L<Catalyst>
+model.  When the depending model is called, we get the value of that model in the
+same way as if we called '$c->model($name)'.  You can by the way use any type of
+L<Catalys> component as a value (models, views and even controllers).
+
+The second way is to use a coderef, which is expected to return a value suitable for
+the depending model.  This gives you a little more flexibility for crafting very
+custom types of dependencies.  If you use a coderef you will get three values,
+the application (or context depending on if the depending model does ACCEPT_CONTEXT),
+the component name and a reference to any static configuration for the model (from
+the global configuration, for example).
+
 =head1 METHODS
 
 This plugin defines the following methods
@@ -135,13 +148,13 @@ Example:
       'Model::Foo' => {
         bar => 'Model::Bar',
         baz => sub {
-          my ($app_or_ctx, $component_name) = @_;
+          my ($app_or_ctx, $component_name, $config) = @_;
           return ...;
         },
       },
     );
 
-Maps a list of components and dependencies
+Maps a list of components and dependencies.
 
 =head1 map_dependency
 
