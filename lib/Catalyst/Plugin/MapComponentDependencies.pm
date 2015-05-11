@@ -5,7 +5,7 @@ use Catalyst::Utils;
 
 requires 'config_for';
 
-our $VERSION = '0.003';
+our $VERSION = '0.004';
 
 my $plugin_config = sub {
   my $self = shift;
@@ -37,16 +37,17 @@ around 'config_for', sub {
     return $config;
 
   # walk the value tree for $dependencies.
+  my $mapped_config; # shallow clone... might need something better than all this later
   foreach my $key (keys %$dependencies) {
     if((ref($dependencies->{$key}) ||'') eq 'CODE') {
-      $dependencies->{$key} = $dependencies->{$key}->($app_or_ctx, $component_name, $config);
+      $mapped_config->{$key} = $dependencies->{$key}->($app_or_ctx, $component_name, $config);
     } else {
-      $dependencies->{$key} = $app_or_ctx->component($dependencies->{$key}) ||
+      $mapped_config->{$key} = $app_or_ctx->component($dependencies->{$key}) ||
         die "'${\$dependencies->{$key}}' is not a component...";
     }
   }
 
-  return my $merged = Catalyst::Utils::merge_hashes($config, $dependencies);
+  return my $merged = Catalyst::Utils::merge_hashes($config, $mapped_config);
 };
 
 1;

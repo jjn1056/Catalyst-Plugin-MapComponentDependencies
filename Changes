@@ -1,5 +1,9 @@
 Revision history for Perl extension Catalyst::Plugin::MapComponentDependencies
 
+0.004   11 May 2015
+        - make a shallow clone of the dependencies so that you get a fresh
+          copy each time.
+
 0.003   11 May 2015
         - Fixed bug with coderef style dependencies
         - Expanded docs a bit and test case for above
