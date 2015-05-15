@@ -1,5 +1,8 @@
 Revision history for Perl extension Catalyst::Plugin::MapComponentDependencies
 
+0.005   15 May 2015
+        - Allow shorthand configuration option
+
 0.004   11 May 2015
         - make a shallow clone of the dependencies so that you get a fresh
           copy each time.

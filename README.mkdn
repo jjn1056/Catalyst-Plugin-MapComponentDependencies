@@ -51,7 +51,29 @@ prefer you may setup you dependencies via configuration:
             },
           },
         },
-      )
+      );
+
+      MyApp->setup;
+
+Alternatively you may choose a 'shorthand' version of the configuration based
+approach:
+
+      package MyApp;
+      
+      use Catalyst 'MapComponentDependencies';
+    
+      MyApp->config(
+        'Model::Foo' => { another_param => 'value' },
+        'Plugin::MapComponentDependencies' => {
+          'Model::Foo' => {
+            bar => 'Model::Bar',
+            baz => sub {
+              my ($app_or_ctx, $component_name, $from_config_args) = @_;
+              return ...;
+            },
+          },
+        },
+      );
 
       MyApp->setup;
 
@@ -95,7 +117,7 @@ Example:
       'Model::Foo' => {
         bar => 'Model::Bar',
         baz => sub {
-          my ($app_or_ctx, $component_name) = @_;
+          my ($app_or_ctx, $component_name, $config) = @_;
           return ...;
         },
       },
@@ -116,6 +138,35 @@ and defines the following keys:
 
 A Hashref where the key is a target component and the value is a hashref of arguments
 that will be sent to it during initializion.
+
+    MyApp->config(
+      'Plugin::MapComponentDependencies' => {
+        map_dependencies => {
+          'Model::Foo' => {
+            bar => 'Model::Bar',
+            baz => sub {
+              my ($app_or_ctx, $component_name, $from_config_args) = @_;
+              return ...;
+            },
+          },
+        },
+      },
+    );
+
+**NOTE:** for simplicity you can place your hashref of configuration directly under the
+plugin namespace.
+
+    MyApp->config(
+      'Plugin::MapComponentDependencies' => {
+        'Model::Foo' => {
+          bar => 'Model::Bar',
+          baz => sub {
+            my ($app_or_ctx, $component_name, $from_config_args) = @_;
+            return ...;
+          },
+        },
+      },
+    );
 
 # SEE ALSO
 

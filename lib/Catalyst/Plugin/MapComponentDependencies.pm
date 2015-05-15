@@ -5,18 +5,24 @@ use Catalyst::Utils;
 
 requires 'config_for';
 
-our $VERSION = '0.004';
+our $VERSION = '0.005';
+
+# Allow a shorthand version of config, should make it a bit
+# more tidy and I doubt we will ever need configuration for
+# the plugin itself.
 
 my $plugin_config = sub {
-  my $self = shift;
-  return $self->config->{'Plugin::MapComponentDependencies'} ||= +{};
+  my $config_namespace = shift->config->{'Plugin::MapComponentDependencies'} ||= +{};
+  return exists $config_namespace->{map_dependencies} ?
+    $config_namespace->{map_dependencies} :
+      $config_namespace;
 };
 
 sub map_dependency {
   my ($self, $name, $args) = @_;
   die "Component $name exists" if
-    $self->$plugin_config->{map_dependencies}->{$name};
-  $self->$plugin_config->{map_dependencies}->{$name} = $args;
+    $self->$plugin_config->{$name};
+  $self->$plugin_config->{$name} = $args;
 }
  
 sub map_dependencies {
@@ -25,7 +31,7 @@ sub map_dependencies {
     $self->map_dependency(shift, shift);
   }
 
-  return $self->$plugin_config->{map_dependencies} ||= +{};
+  return $self->$plugin_config;
 }
 
 around 'config_for', sub {
@@ -59,10 +65,10 @@ Catalyst::Plugin::MapComponentDependencies - Allow components to depend on other
 =head1 SYNOPSIS
 
     package MyApp;
-    
+
     use Moose;
     use Catalyst;
-  
+
     with 'Catalyst::Plugin::MapComponentDependencies';
 
     MyApp->map_dependencies(
@@ -89,9 +95,9 @@ want to get the handy class methods 'map_dependencies' and 'map_dependency'.  If
 prefer you may setup you dependencies via configuration:
 
     package MyApp;
-    
+
     use Catalyst 'MapComponentDependencies';
-  
+
     MyApp->config(
       'Model::Foo' => { another_param => 'value' },
       'Plugin::MapComponentDependencies' => {
@@ -105,7 +111,29 @@ prefer you may setup you dependencies via configuration:
           },
         },
       },
-    )
+    );
+
+    MyApp->setup;
+
+Alternatively you may choose a 'shorthand' version of the configuration based
+approach:
+
+    package MyApp;
+
+    use Catalyst 'MapComponentDependencies';
+
+    MyApp->config(
+      'Model::Foo' => { another_param => 'value' },
+      'Plugin::MapComponentDependencies' => {
+        'Model::Foo' => {
+          bar => 'Model::Bar',
+          baz => sub {
+            my ($app_or_ctx, $component_name, $from_config_args) = @_;
+            return ...;
+          },
+        },
+      },
+    );
 
     MyApp->setup;
 
@@ -170,6 +198,35 @@ and defines the following keys:
 
 A Hashref where the key is a target component and the value is a hashref of arguments
 that will be sent to it during initializion.
+
+    MyApp->config(
+      'Plugin::MapComponentDependencies' => {
+        map_dependencies => {
+          'Model::Foo' => {
+            bar => 'Model::Bar',
+            baz => sub {
+              my ($app_or_ctx, $component_name, $from_config_args) = @_;
+              return ...;
+            },
+          },
+        },
+      },
+    );
+
+B<NOTE:> for simplicity you can place your hashref of configuration directly under the
+plugin namespace.
+
+    MyApp->config(
+      'Plugin::MapComponentDependencies' => {
+        'Model::Foo' => {
+          bar => 'Model::Bar',
+          baz => sub {
+            my ($app_or_ctx, $component_name, $from_config_args) = @_;
+            return ...;
+          },
+        },
+      },
+    );
 
 =head1 SEE ALSO
 
