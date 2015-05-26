@@ -4,28 +4,28 @@ Catalyst::Plugin::MapComponentDependencies - Allow components to depend on other
 
 # SYNOPSIS
 
-      package MyApp;
-      
-      use Moose;
-      use Catalyst;
-    
-      with 'Catalyst::Plugin::MapComponentDependencies';
+    package MyApp;
 
-      MyApp->map_dependencies(
-        'Model::Foo' => {
-          bar => 'Model::Bar',
-          baz => sub {
-            my ($app_or_ctx, $component_name) = @_;
-            return ...;
-          },
+    use Moose;
+    use Catalyst;
+
+    with 'Catalyst::Plugin::MapComponentDependencies';
+
+    MyApp->map_dependencies(
+      'Model::Foo' => {
+        bar => 'Model::Bar',
+        baz => sub {
+          my ($app_or_ctx, $component_name) = @_;
+          return ...;
         },
-      );
+      },
+    );
 
-      MyApp->config(
-        'Model::Foo' => { another_param => 'value' }
-      )
+    MyApp->config(
+      'Model::Foo' => { another_param => 'value' }
+    )
 
-      MyApp->setup;
+    MyApp->setup;
 
 During setup when 'Model::Foo' is created it will get all three key / value pairs
 send to ->new.
@@ -34,37 +34,14 @@ send to ->new.
 want to get the handy class methods 'map\_dependencies' and 'map\_dependency'.  If you
 prefer you may setup you dependencies via configuration:
 
-      package MyApp;
-      
-      use Catalyst 'MapComponentDependencies';
-    
-      MyApp->config(
-        'Model::Foo' => { another_param => 'value' },
-        'Plugin::MapComponentDependencies' => {
-          map_dependencies => {
-            'Model::Foo' => {
-              bar => 'Model::Bar',
-              baz => sub {
-                my ($app_or_ctx, $component_name, $from_config_args) = @_;
-                return ...;
-              },
-            },
-          },
-        },
-      );
+    package MyApp;
 
-      MyApp->setup;
+    use Catalyst 'MapComponentDependencies';
 
-Alternatively you may choose a 'shorthand' version of the configuration based
-approach:
-
-      package MyApp;
-      
-      use Catalyst 'MapComponentDependencies';
-    
-      MyApp->config(
-        'Model::Foo' => { another_param => 'value' },
-        'Plugin::MapComponentDependencies' => {
+    MyApp->config(
+      'Model::Foo' => { another_param => 'value' },
+      'Plugin::MapComponentDependencies' => {
+        map_dependencies => {
           'Model::Foo' => {
             bar => 'Model::Bar',
             baz => sub {
@@ -73,12 +50,60 @@ approach:
             },
           },
         },
-      );
+      },
+    );
 
-      MyApp->setup;
+    MyApp->setup;
+
+Alternatively you may choose a 'shorthand' version of the configuration based
+approach:
+
+    package MyApp;
+
+    use Catalyst 'MapComponentDependencies';
+
+    MyApp->config(
+      'Model::Foo' => { another_param => 'value' },
+      'Plugin::MapComponentDependencies' => {
+        'Model::Foo' => {
+          bar => 'Model::Bar',
+          baz => sub {
+            my ($app_or_ctx, $component_name, $from_config_args) = @_;
+            return ...;
+          },
+        },
+      },
+    );
+
+    MyApp->setup;
 
 You may prefer this if your dependencies will map differently based on environment
 and configuration settings.
+
+Lastly you may use the helper utilities to create a single merged configuration
+for your dependencies:
+
+    package MyApp;
+
+    use Moose;
+    use Catalyst 'MapComponentDependencies;
+    use Catalyst::Plugin::MapComponentDependencies::Utils ':All';
+
+    MyApp->config(
+      'Model::Bar' => { key => 'value' },
+      'Model::Foo' => {
+        bar => FromModel 'Bar',
+        baz => FromCode {
+          my ($app_or_ctx, $component_name) = @_;
+          return ...;
+        },
+        another_param => 'value',
+      },
+    );
+
+    MyApp->setup;
+
+See [Catalyst::Plugin::MapComponentDependencies::Utils](https://metacpan.org/pod/Catalyst::Plugin::MapComponentDependencies::Utils) for more.
 
 # DESCRIPTION
 

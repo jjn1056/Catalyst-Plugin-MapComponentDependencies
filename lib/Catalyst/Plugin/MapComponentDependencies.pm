@@ -2,10 +2,11 @@ package Catalyst::Plugin::MapComponentDependencies;
 
 use Moose::Role;
 use Catalyst::Utils;
+use Catalyst::Plugin::MapComponentDependencies::Utils;
 
 requires 'config_for';
 
-our $VERSION = '0.005';
+our $VERSION = '0.006';
 
 # Allow a shorthand version of config, should make it a bit
 # more tidy and I doubt we will ever need configuration for
@@ -38,22 +39,26 @@ around 'config_for', sub {
   my ($orig, $app_or_ctx, $component_name, @args) = @_;
   my $config = $app_or_ctx->$orig($component_name, @args);
   my $component_suffix = Catalyst::Utils::class2classsuffix($component_name);
-  
-  my $dependencies = $app_or_ctx->map_dependencies->{$component_suffix} ||
-    return $config;
 
-  # walk the value tree for $dependencies.
-  my $mapped_config; # shallow clone... might need something better than all this later
-  foreach my $key (keys %$dependencies) {
-    if((ref($dependencies->{$key}) ||'') eq 'CODE') {
-      $mapped_config->{$key} = $dependencies->{$key}->($app_or_ctx, $component_name, $config);
-    } else {
-      $mapped_config->{$key} = $app_or_ctx->component($dependencies->{$key}) ||
-        die "'${\$dependencies->{$key}}' is not a component...";
+  # Walk the values and expand as needed
+  Catalyst::Plugin::MapComponentDependencies::Utils::_expand_config($app_or_ctx, $component_name, $config);
+
+  if(my $dependencies = $app_or_ctx->map_dependencies->{$component_suffix}) {
+    # walk the value tree for $dependencies.
+    my $mapped_config; # shallow clone... might need something better than all this later
+    foreach my $key (keys %$dependencies) {
+      if((ref($dependencies->{$key}) ||'') eq 'CODE') {
+        $mapped_config->{$key} = $dependencies->{$key}->($app_or_ctx, $component_name, $config);
+      } else {
+        $mapped_config->{$key} = $app_or_ctx->component($dependencies->{$key}) ||
+          die "'${\$dependencies->{$key}}' is not a component...";
+      }
     }
-  }
 
-  return my $merged = Catalyst::Utils::merge_hashes($config, $mapped_config);
+    return my $merged = Catalyst::Utils::merge_hashes($config, $mapped_config);
+  } else {
+    return $config;
+  }  
 };
 
 1;
@@ -139,6 +144,31 @@ approach:
 
 You may prefer this if your dependencies will map differently based on environment
 and configuration settings.
+
+Lastly you may use the helper utilities to create a single merged configuration
+for your dependencies:
+
+    package MyApp;
+
+    use Moose;
+    use Catalyst 'MapComponentDependencies;
+    use Catalyst::Plugin::MapComponentDependencies::Utils ':All';
+
+    MyApp->config(
+      'Model::Bar' => { key => 'value' },
+      'Model::Foo' => {
+        bar => FromModel 'Bar',
+        baz => FromCode {
+          my ($app_or_ctx, $component_name) = @_;
+          return ...;
+        },
+        another_param => 'value',
+      },
+    );
+
+    MyApp->setup;
+
+See L<Catalyst::Plugin::MapComponentDependencies::Utils> for more.
 
 =head1 DESCRIPTION
 
