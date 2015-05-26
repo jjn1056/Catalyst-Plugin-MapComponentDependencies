@@ -1,5 +1,8 @@
 Revision history for Perl extension Catalyst::Plugin::MapComponentDependencies
 
+0.007   26 May 2015
+        - Fixed POD errors introduced in last release
+
 0.006   26 May 2015
         - Catalyst::Plugin::MapComponentDependencies::Utils allows a more
         streamlined configuration setup if you like to use Perl based configs.

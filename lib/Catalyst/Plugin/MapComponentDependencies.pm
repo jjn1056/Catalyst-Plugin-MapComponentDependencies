@@ -6,7 +6,7 @@ use Catalyst::Plugin::MapComponentDependencies::Utils;
 
 requires 'config_for';
 
-our $VERSION = '0.006';
+our $VERSION = '0.007';
 
 # Allow a shorthand version of config, should make it a bit
 # more tidy and I doubt we will ever need configuration for

@@ -66,7 +66,7 @@ sub ConfigLoaderSubstitutions {
 
 1;
 
-=head1 TITLE
+=head1 NAME
 
 Catalyst::Plugin::MapComponentDependencies::Utils - Utilities to integrate dependencies
 
