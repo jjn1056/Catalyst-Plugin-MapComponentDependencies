@@ -2,9 +2,13 @@ package Catalyst::Plugin::MapComponentDependencies::Utils;
 
 use Scalar::Util 'blessed';
 use Exporter 'import';
-use Data::Visitor::Callback;
+use Catalyst::Utils;
 
-our @EXPORT_OK = (qw/FromModel FromView FromController FromComponent FromCode ConfigLoaderSubstitutions/);
+our @EXPORT_OK = (qw/FromModel FromView FromController
+  FromComponent FromCode ConfigLoaderSubstitutions
+  FromContext FromRequest FromResponse FromLog
+  FromApplication/);
+
 our %EXPORT_TAGS = (All => \@EXPORT_OK, ALL => \@EXPORT_OK);
 
 sub model_ns {  __PACKAGE__ .'::MODEL' }
@@ -33,26 +37,74 @@ sub FromController($) { my $v = shift; return bless \$v, controller_ns }
 sub FromComponent($) { my $v = shift; return bless \$v, component_ns }
 sub FromCode(&) { my $v = shift; return bless \$v, code_ns }
 
+sub FromContext {
+  return FromCode {
+    my ($c, $name, $config) = @_;
+    return blessed $c ? $c : undef;
+  };
+}
+
+sub FromRequest {
+  return FromCode {
+    my ($c, $name, $config) = @_;
+    return blessed $c ? $c->request : undef;
+  };
+}
+
+sub FromResponse {
+  return FromCode {
+    my ($c, $name, $config) = @_;
+    return blessed $c ? $c->request : undef;
+  };
+}
+
+sub FromLog {
+  return FromCode {
+    my ($c_or_app, $name, $config) = @_;
+    return $c->log; # log is application and context
+  };
+}
+
+sub FromApplication {
+  return FromCode {
+    my ($c_or_app, $name, $config) = @_;
+    return blessed $c_or_app ? ref($c_or_app): $c_or_app;
+  };
+}
+
 sub _expand_config {
   my ($app_or_ctx, $component_name, $config) = @_;
-  my $visitor_cb = sub {
-    my ( $visitor, $data ) = @_;
 
-    if(my $m = is_model $data ) { return $_ = $app_or_ctx->model($m) || die "$m is not a Model" }
-    if(my $v = is_view $data ) { return $_ = $app_or_ctx->view($v) || die "$v is not a View" }
-    if(my $c = is_controller $data ) { return $_ = $app_or_ctx->controller($c) || die "$c is not a Controller" }
-    if(my $c = is_component $data ) { return $_ = $app_or_ctx->component($c) || die "$c is not a Component" }
-    if(my $c = is_code $data ) { return $_ = $c->($app_or_ctx, $component_name, $config) }
+  my $mapped_config = +{}; # shallow clone... might need something better than all this later
+  foreach my $key (keys %$config) {
+    my $value = $config->{$key};
+    if(my $m = is_model $value) {
+      $mapped_config->{$key} = $app_or_ctx->model($m) || die "$m is not a Model";
+    } elsif(my $v = is_view $value) {
+      $mapped_config->{$key} = $app_or_ctx->view($v) || die "$v is not a View";
+    } elsif(my $c = is_controller $value) {
+      $mapped_config->{$key} = $app_or_ctx->controller($c) || die "$c is not a Controller";
+    } elsif(my $c = is_component $value) {
+      $mapped_config->{$key} = $app_or_ctx->component($c) || die "$c is not a Component";
+    } elsif(my $cb = is_code $value) {
+      $mapped_config->{$key} = $cb->($app_or_ctx, $component_name, $config);
+    }
+  }
 
-    return $data;
-  };
-
-  Data::Visitor::Callback->new(visit => $visitor_cb)
-    ->visit($config);
+  return my $merged = Catalyst::Utils::merge_hashes($config, $mapped_config);
 }
+
+
+   
+  
 
 sub ConfigLoaderSubstitutions {
   return (
+    FromContext => sub { my $c = shift; FromContext },
+    FromRequest => sub { my $c = shift; FromRequest },
+    FromResponse => sub { my $c = shift; FromResponse },
+    FromLog => sub { my $c = shift; FromLog },
+    FromApplication => sub { my $c = shift; FromApplication },
     FromModel => sub { my $c = shift; FromModel(@_) },
     FromView => sub { my $c = shift; FromView(@_) },
     FromController => sub { my $c = shift; FromController(@_) },
@@ -134,6 +186,40 @@ Creates a dependency to the named controller.
 =head2 FromCode
 
 An anonymouse coderef that must return the expected dependency.
+
+=head2 FromContext
+
+The current context, or undefined if the model does not ACCEPT_CONTEXT.
+
+B<NOTE>: Its really easy to create a circular reference when using the
+context as a dependency.  I recommend making sure the object which is
+consuming it stores a weak reference.  For example:
+
+    package MyApp::Object;
+
+    use Moose;
+
+    has ctx => (is=>'ro', required=>1, weak_ref=>1);
+
+    # rest of code...
+
+=head2 FromRequest
+
+The current L<Catalyst::Request> instance, or undefined if the model does not
+ACCEPT_CONTEXT.
+
+=head2 FromResponse
+
+The current L<Catalyst::Response> instance, or undefined if the model does not
+ACCEPT_CONTEXT.
+
+=head2 FromLog
+
+The current Log object.
+
+=head2 FromApplication
+
+You application class.
 
 =head2 ConfigLoaderSubstitutions
 

@@ -129,6 +129,34 @@ the application (or context depending on if the depending model does ACCEPT\_CON
 the component name and a reference to any static configuration for the model (from
 the global configuration, for example).
 
+**NOTE**: Currently we only map dependencies 'one level' into the configuration
+hash.  Which means the following works as expected:
+
+    MyApp->map_dependencies(
+      'Model::Foo' => {
+        baz => sub {
+          my ($app_or_ctx, $component_name, $config) = @_;
+          return ...;
+        },
+      },
+    );
+
+But not this:
+
+    MyApp->map_dependencies(
+      'Model::Foo' => {
+        baz => {
+          bar => sub {
+          my ($app_or_ctx, $component_name, $config) = @_;
+          return ...;
+          },
+        },
+      },
+    );
+
+I'm not sure if I consider this limitation a feature or not... If you have good
+use cases let me know and I'll consider a fix.
+
 # METHODS
 
 This plugin defines the following methods

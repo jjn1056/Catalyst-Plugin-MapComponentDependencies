@@ -41,11 +41,11 @@ around 'config_for', sub {
   my $component_suffix = Catalyst::Utils::class2classsuffix($component_name);
 
   # Walk the values and expand as needed
-  Catalyst::Plugin::MapComponentDependencies::Utils::_expand_config($app_or_ctx, $component_name, $config);
+  $config = Catalyst::Plugin::MapComponentDependencies::Utils::_expand_config($app_or_ctx, $component_name, $config);
 
   if(my $dependencies = $app_or_ctx->map_dependencies->{$component_suffix}) {
     # walk the value tree for $dependencies.
-    my $mapped_config; # shallow clone... might need something better than all this later
+    my $mapped_config = +{}; # shallow clone... might need something better than all this later
     foreach my $key (keys %$dependencies) {
       if((ref($dependencies->{$key}) ||'') eq 'CODE') {
         $mapped_config->{$key} = $dependencies->{$key}->($app_or_ctx, $component_name, $config);
@@ -193,6 +193,34 @@ custom types of dependencies.  If you use a coderef you will get three values,
 the application (or context depending on if the depending model does ACCEPT_CONTEXT),
 the component name and a reference to any static configuration for the model (from
 the global configuration, for example).
+
+B<NOTE>: Currently we only map dependencies 'one level' into the configuration
+hash.  Which means the following works as expected:
+
+    MyApp->map_dependencies(
+      'Model::Foo' => {
+        baz => sub {
+          my ($app_or_ctx, $component_name, $config) = @_;
+          return ...;
+        },
+      },
+    );
+
+But not this:
+
+    MyApp->map_dependencies(
+      'Model::Foo' => {
+        baz => {
+          bar => sub {
+          my ($app_or_ctx, $component_name, $config) = @_;
+          return ...;
+          },
+        },
+      },
+    );
+
+I'm not sure if I consider this limitation a feature or not... If you have good
+use cases let me know and I'll consider a fix.
 
 =head1 METHODS
 
