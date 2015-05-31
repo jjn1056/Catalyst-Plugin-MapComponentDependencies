@@ -1,5 +1,9 @@
 Revision history for Perl extension Catalyst::Plugin::MapComponentDependencies
 
+0.009   31 May 2015
+        - Fixed a bug where FromResponse utility helper was returning a request
+          object.
+
 0.008   27 May 2015
         -  Additional Util methods to name common dependencies such as context,
            log, response, etc.

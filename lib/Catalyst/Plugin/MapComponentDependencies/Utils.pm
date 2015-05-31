@@ -54,7 +54,7 @@ sub FromRequest {
 sub FromResponse {
   return FromCode {
     my ($c, $name, $config) = @_;
-    return blessed $c ? $c->request : undef;
+    return blessed $c ? $c->response : undef;
   };
 }
 
@@ -93,10 +93,6 @@ sub _expand_config {
 
   return my $merged = Catalyst::Utils::merge_hashes($config, $mapped_config);
 }
-
-
-   
-  
 
 sub ConfigLoaderSubstitutions {
   return (

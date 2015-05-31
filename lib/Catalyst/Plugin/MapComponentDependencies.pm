@@ -4,9 +4,9 @@ use Moose::Role;
 use Catalyst::Utils;
 use Catalyst::Plugin::MapComponentDependencies::Utils;
 
-requires 'config_for';
+requires 'config_for', 'component';
 
-our $VERSION = '0.008';
+our $VERSION = '0.009';
 
 # Allow a shorthand version of config, should make it a bit
 # more tidy and I doubt we will ever need configuration for
